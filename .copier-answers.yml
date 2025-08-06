@@ -1,0 +1,11 @@
+# Changes here will be overwritten by Copier
+_commit: 11b9db1
+_src_path: https://github.com/viaacode/meemoo-python-service-template
+project_description: Listens to deliveries of incoming SIP packages and registers
+    the deliveries in a database.
+project_name: sipin-sip-delivery-registrator
+python_version: '3.12'
+uses_db: true
+uses_mediahaven: false
+uses_pulsar: true
+uses_s3: false
