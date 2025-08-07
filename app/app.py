@@ -3,6 +3,7 @@ from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from app.services.pulsar import PulsarClient
+from app.services.db import DbClient, SipDelivery
 
 
 class EventListener:
@@ -12,7 +13,7 @@ class EventListener:
         """Initializes the EventListener with configuration, logging, and Pulsar client."""
         config_parser = ConfigParser()
         self.config = config_parser.app_cfg
-
+        self.db_client = DbClient()
         self.log = logging.get_logger(__name__, config=config_parser)
         self.pulsar_client = PulsarClient()
 
@@ -35,7 +36,15 @@ class EventListener:
 
         self.log.info(f"Start handling of {subject}.")
 
-        event_data = event.get_data()
+        # Register SIP delivery in database
+        s3_event_data = event.get_data()["s3_message"]["Records"][0]["s3"]
+        sip_delivery = SipDelivery(
+            correlation_id=event.correlation_id,
+            s3_bucket=s3_event_data["bucket"]["name"],
+            s3_key=s3_event_data["object"]["key"],
+            s3_domain=s3_event_data["domain"]["name"],
+        )
+        self.db_client.insert_sip_delivery(sip_delivery)
 
     def start_listening(self):
         """

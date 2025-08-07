@@ -7,7 +7,8 @@ requires-python = ">=3.12"
 dependencies = [
     "viaa-chassis",
     "pulsar-client",
-    "psycopg",
+    "psycopg>=3.2.9,<4.0.0",
+    "psycopg-pool>=3.2.6,<4.0.0",
     "meemoo-cloudevents==0.1.0-rc.3",
 ]
 classifiers = [
