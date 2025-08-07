@@ -5,6 +5,7 @@ app:
     pulsar:
         host: !ENV ${PULSAR_HOST}
         port: !ENV ${PULSAR_PORT}
+        consumer_topic: !ENV ${REGISTRATOR_CONSUMER_TOPIC}
     db:
         host: !ENV ${DB_HOST}
         port: !ENV ${DB_PORT}
