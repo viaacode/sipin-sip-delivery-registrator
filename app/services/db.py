@@ -19,7 +19,7 @@ class SipStatus(StrEnum):
 class SipDelivery:
     correlation_id: str
     s3_bucket: str
-    s3_key: str
+    s3_object_key: str
     s3_domain: str
     pid: str | None = field(default=None)
     status: SipStatus = field(default=SipStatus.IN_PROGRESS)
@@ -47,11 +47,11 @@ class DbClient:
         with self.pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    f"INSERT INTO public.{self.table} (correlation_id, s3_bucket, s3_key, last_event_type, last_event_occurred_at) VALUES (%s, %s, %s, %s, %s);",
+                    f"INSERT INTO public.{self.table} (correlation_id, s3_bucket, s3_object_key, last_event_type, last_event_occurred_at) VALUES (%s, %s, %s, %s, %s);",
                     (
                         sip_delivery.correlation_id,
                         sip_delivery.s3_bucket,
-                        sip_delivery.s3_key,
+                        sip_delivery.s3_object_key,
                         sip_delivery.last_event_type,
                         sip_delivery.last_event_occurred_at,
                     ),

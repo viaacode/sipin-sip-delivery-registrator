@@ -43,7 +43,7 @@ class EventListener:
         sip_delivery = SipDelivery(
             correlation_id=event.correlation_id,
             s3_bucket=s3_event_data["bucket"]["name"],
-            s3_key=s3_event_data["object"]["key"],
+            s3_object_key=s3_event_data["object"]["key"],
             s3_domain=s3_event_data["domain"]["name"],
         )
         self.db_client.insert_sip_delivery(sip_delivery)
@@ -51,7 +51,7 @@ class EventListener:
         # Write event
         data = {
             "s3_bucket": sip_delivery.s3_bucket,
-            "s3_key": sip_delivery.s3_key,
+            "s3_object_key": sip_delivery.s3_object_key,
             "s3_domain": sip_delivery.s3_domain
         }
         producer_topic = self.config["pulsar"]["producer_topic"]
