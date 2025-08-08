@@ -1,9 +1,11 @@
-from cloudevents.events import Event, PulsarBinding
+from cloudevents.events import Event, EventAttributes, EventOutcome, PulsarBinding
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from app.services.pulsar import PulsarClient
 from app.services.db import DbClient, SipDelivery
+
+from . import APP_NAME
 
 
 class EventListener:
@@ -45,6 +47,45 @@ class EventListener:
             s3_domain=s3_event_data["domain"]["name"],
         )
         self.db_client.insert_sip_delivery(sip_delivery)
+
+        # Write event
+        data = {
+            "s3_bucket": sip_delivery.s3_bucket,
+            "s3_key": sip_delivery.s3_key,
+            "s3_domain": sip_delivery.s3_domain
+        }
+        producer_topic = self.config["pulsar"]["producer_topic"]
+
+        self.produce_event(
+            producer_topic, data, subject, EventOutcome.SUCCESS, event.correlation_id
+        )
+
+    def produce_event(
+        self,
+        topic: str,
+        data: dict,
+        subject: str,
+        outcome: EventOutcome,
+        correlation_id: str,
+    ):
+        """Produce an event on a Pulsar topic.
+        Args:
+            topic: The topic to send the cloudevent to.
+            data: The data payload.
+            subject: The subject of the event.
+            outcome: The attributes outcome of the Event.
+            correlation_id: The correlation ID.
+        """
+        attributes = EventAttributes(
+            type=topic,
+            source=APP_NAME,
+            subject=subject,
+            correlation_id=correlation_id,
+            outcome=outcome,
+        )
+
+        event = Event(attributes, data)
+        self.pulsar_client.produce_event(topic, event)
 
     def start_listening(self):
         """
