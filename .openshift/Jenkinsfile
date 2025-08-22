@@ -1,18 +1,3 @@
-def remoteInt = [:]
-remoteInt.name = 'sipin-int'
-remoteInt.host = 'do-int-sip-01.do.viaa.be'
-remoteInt.allowAnyHosts = true
-
-def remoteQas = [:]
-remoteQas.name = 'sipin-qas'
-remoteQas.host = 'do-qas-sip-01.do.viaa.be'
-remoteQas.allowAnyHosts = true
-
-def remotePrd = [:]
-remotePrd.name = 'sipin-prd'
-remotePrd.host = 'do-prd-sip-01.do.viaa.be'
-remotePrd.allowAnyHosts = true
-
 pipeline {
     agent {
         kubernetes {
