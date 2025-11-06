@@ -81,7 +81,7 @@ class EventListener:
     def produce_event(
         self,
         topic: str,
-        data: dict,
+        data: dict[str, str],
         subject: str,
         outcome: EventOutcome,
         correlation_id: str,
