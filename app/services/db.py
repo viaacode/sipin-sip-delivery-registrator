@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import StrEnum
 
 # Third-party
@@ -26,7 +26,7 @@ class SipDelivery:
     status: SipStatus = field(default=SipStatus.IN_PROGRESS)
     failure_message: str | None = field(default=None)
     last_event_type: str = field(default="sipin/sip.registered")
-    last_event_occurred_at: datetime = field(default_factory=datetime.utcnow)
+    last_event_occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class DuplicateKeyError(Exception):
@@ -43,7 +43,8 @@ class DbClient:
         self.log = logging.get_logger(__name__, config=config_parser)
         self.db_config: dict = config_parser.app_cfg["db"]
         self.pool = ConnectionPool(
-            f"host={self.db_config['host']} port={self.db_config['port']} dbname={self.db_config['dbname']} user={self.db_config['username']} password={self.db_config['password']}"
+            f"host={self.db_config['host']} port={self.db_config['port']} dbname={self.db_config['dbname']} user={self.db_config['username']} password={self.db_config['password']}",
+            open=True
         )
         self.table = self.db_config["table"]
 
