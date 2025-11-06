@@ -64,7 +64,7 @@ class EventListener:
         try:
             self.db_client.insert_sip_delivery(sip_delivery)
         except DuplicateKeyError as e:
-            self.log.error(str(e))
+            self.log.error(f"Error: {str(e)}")
             data = self._build_payload_event(sip_delivery, str(e))
             self.produce_event(
                 producer_topic, data, subject, EventOutcome.FAIL, event.correlation_id
