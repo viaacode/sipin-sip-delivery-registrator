@@ -5,6 +5,7 @@ from enum import StrEnum
 
 # Third-party
 from psycopg_pool import ConnectionPool
+from psycopg.errors import UniqueViolation
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
@@ -28,6 +29,14 @@ class SipDelivery:
     last_event_occurred_at: datetime = field(default_factory=datetime.utcnow)
 
 
+class DuplicateKeyError(Exception):
+    """Error when inserting with a duplicate key (correlation_id)
+
+    This is an abstraction of Psycopg's UniqueViolation.
+    """
+    pass
+
+
 class DbClient:
     def __init__(self):
         config_parser = ConfigParser()
@@ -43,20 +52,26 @@ class DbClient:
 
         Args:
             sip_delivery: A delivered SIP.
+
+        Raises:
+            DuplicateKeyError: If the record cannot be inserted because of duplicate correlation_id.
         """
-        with self.pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"INSERT INTO public.{self.table} (correlation_id, s3_bucket, s3_object_key, last_event_type, last_event_occurred_at) VALUES (%s, %s, %s, %s, %s);",
-                    (
-                        sip_delivery.correlation_id,
-                        sip_delivery.s3_bucket,
-                        sip_delivery.s3_object_key,
-                        sip_delivery.last_event_type,
-                        sip_delivery.last_event_occurred_at,
-                    ),
-                )
-                conn.commit()
+        try:
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f"INSERT INTO public.{self.table} (correlation_id, s3_bucket, s3_object_key, last_event_type, last_event_occurred_at) VALUES (%s, %s, %s, %s, %s);",
+                        (
+                            sip_delivery.correlation_id,
+                            sip_delivery.s3_bucket,
+                            sip_delivery.s3_object_key,
+                            sip_delivery.last_event_type,
+                            sip_delivery.last_event_occurred_at,
+                        ),
+                    )
+                    conn.commit()
+        except UniqueViolation as e:
+            raise DuplicateKeyError(str(e)) from e
 
     def close(self):
         """Close the connection (pool)"""
