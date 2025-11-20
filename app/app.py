@@ -3,7 +3,7 @@ from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from app.services.pulsar import PulsarClient
-from app.services.db import DbClient, SipDelivery
+from app.services.db import DbClient, SipDelivery, DuplicateKeyError
 
 from . import APP_NAME
 
@@ -19,6 +19,18 @@ class EventListener:
         self.log = logging.get_logger(__name__, config=config_parser)
         self.pulsar_client = PulsarClient()
 
+    def _build_payload_event(self, sip_delivery: SipDelivery, message: str | None = None) -> dict[str,str]:
+        payload = {
+            "s3_bucket": sip_delivery.s3_bucket,
+            "s3_object_key": sip_delivery.s3_object_key,
+            "s3_domain": sip_delivery.s3_domain
+        }
+
+        if message:
+            payload["message"] = message
+
+        return payload
+
     def handle_incoming_message(self, event: Event):
         """
         Handles an incoming Pulsar event.
@@ -26,6 +38,9 @@ class EventListener:
         Args:
             event (Event): The incoming event to process.
         """
+
+        # Producer
+        producer_topic = self.config["pulsar"]["producer_topic"]
 
         # Event attributes
         attributes = event.get_attributes()
@@ -46,15 +61,18 @@ class EventListener:
             s3_object_key=s3_event_data["object"]["key"],
             s3_domain=s3_event_data["domain"]["name"],
         )
-        self.db_client.insert_sip_delivery(sip_delivery)
+        try:
+            self.db_client.insert_sip_delivery(sip_delivery)
+        except DuplicateKeyError as e:
+            self.log.error(f"Error: {str(e)}")
+            data = self._build_payload_event(sip_delivery, str(e))
+            self.produce_event(
+                producer_topic, data, subject, EventOutcome.FAIL, event.correlation_id
+            )
+            return
 
-        # Write event
-        data = {
-            "s3_bucket": sip_delivery.s3_bucket,
-            "s3_object_key": sip_delivery.s3_object_key,
-            "s3_domain": sip_delivery.s3_domain
-        }
-        producer_topic = self.config["pulsar"]["producer_topic"]
+        # Write successful event
+        data = self._build_payload_event(sip_delivery)
 
         self.produce_event(
             producer_topic, data, subject, EventOutcome.SUCCESS, event.correlation_id
@@ -63,7 +81,7 @@ class EventListener:
     def produce_event(
         self,
         topic: str,
-        data: dict,
+        data: dict[str, str],
         subject: str,
         outcome: EventOutcome,
         correlation_id: str,
