@@ -1,6 +1,6 @@
 [project]
 name = "sipin-sip-delivery-registrator"
-version = "0.0.1"
+version = "0.1.1"
 description = "Listens to deliveries of incoming SIP packages and registers the deliveries in a database."
 readme = "README.md"
 requires-python = ">=3.12"
