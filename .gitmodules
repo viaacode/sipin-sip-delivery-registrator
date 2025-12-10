@@ -1,0 +1,3 @@
+[submodule "tests/containers/sipin_postgres"]
+	path = tests/containers/sipin_postgres
+	url = https://github.com/viaacode/sipin_postgres

@@ -1,11 +1,10 @@
 # Standard
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import StrEnum
 
-# Third-party
-from psycopg_pool import ConnectionPool
 from psycopg.errors import UniqueViolation
+from psycopg_pool import ConnectionPool
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
@@ -34,17 +33,17 @@ class DuplicateKeyError(Exception):
 
     This is an abstraction of Psycopg's UniqueViolation.
     """
+
     pass
 
 
 class DbClient:
-    def __init__(self):
-        config_parser = ConfigParser()
+    def __init__(self, config_parser: ConfigParser):
         self.log = logging.get_logger(__name__, config=config_parser)
         self.db_config: dict = config_parser.app_cfg["db"]
         self.pool = ConnectionPool(
             f"host={self.db_config['host']} port={self.db_config['port']} dbname={self.db_config['dbname']} user={self.db_config['username']} password={self.db_config['password']}",
-            open=True
+            open=True,
         )
         self.table = self.db_config["table"]
 
