@@ -149,7 +149,7 @@ def pulsar_env(monkeypatch):
 def outgoing_consumer(pulsar_env):
     """Creates a consumer for the outgoing topic.
 
-    Different subscription per run to guarentuee no cross-talk.
+    Different subscription per run to guarantee no cross-talk.
     """
     client = pulsar.Client(f"pulsar://{pulsar_env['host']}:{pulsar_env['port']}")
     sub = f"test-outgoing-{uuid.uuid4()}"
