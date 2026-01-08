@@ -100,7 +100,7 @@ def insert_sip_delivery(db_client):
 
 
 # Pulsar
-def _wait_for_pulsar(host: str, admin_port: int, timeout: int = 90):
+def _wait_for_pulsar(host: str, admin_port: int, timeout: int = 90, min_sleep: int = 10):
     """Waits until Pulsar is healthy."""
     url = f"http://{host}:{admin_port}/admin/v2/brokers/health"
     deadline = time.time() + timeout
@@ -108,6 +108,7 @@ def _wait_for_pulsar(host: str, admin_port: int, timeout: int = 90):
         try:
             r = requests.get(url, timeout=2)
             if r.status_code == 200:
+                time.sleep(min_sleep)  # To ensure it is actually ready
                 return
         except Exception:
             pass
@@ -128,7 +129,6 @@ def pulsar_env(monkeypatch):
         admin_port = pulsar_ct.get_exposed_port(8080)
 
         _wait_for_pulsar(host, admin_port)
-        time.sleep(10)  # To ensure it is actually ready
 
         # Set env vars to use the values exposed in the container
         monkeypatch.setenv("PULSAR_HOST", host)
