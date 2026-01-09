@@ -11,14 +11,13 @@ class PulsarClient:
     Abstraction for a Pulsar Client.
     """
 
-    def __init__(self):
+    def __init__(self, config_parser: ConfigParser):
         """Initialize the PulsarClient with configurations and a consumer."""
-        config_parser = ConfigParser()
         self.log = logging.get_logger(__name__, config=config_parser)
         self.pulsar_config = config_parser.app_cfg["pulsar"]
 
         self.client = Client(
-            f'pulsar://{self.pulsar_config["host"]}:{self.pulsar_config["port"]}'
+            f"pulsar://{self.pulsar_config['host']}:{self.pulsar_config['port']}"
         )
         self.consumer = self.client.subscribe(
             self.pulsar_config["consumer_topic"], APP_NAME

@@ -2,8 +2,8 @@ from cloudevents.events import Event, EventAttributes, EventOutcome, PulsarBindi
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
+from app.services.db import DbClient, DuplicateKeyError, SipDelivery
 from app.services.pulsar import PulsarClient
-from app.services.db import DbClient, SipDelivery, DuplicateKeyError
 
 from . import APP_NAME
 
@@ -15,15 +15,17 @@ class EventListener:
         """Initializes the EventListener with configuration, logging, and Pulsar client."""
         config_parser = ConfigParser()
         self.config = config_parser.app_cfg
-        self.db_client = DbClient()
+        self.db_client = DbClient(config_parser)
         self.log = logging.get_logger(__name__, config=config_parser)
-        self.pulsar_client = PulsarClient()
+        self.pulsar_client = PulsarClient(config_parser)
 
-    def _build_payload_event(self, sip_delivery: SipDelivery, message: str | None = None) -> dict[str,str]:
+    def _build_payload_event(
+        self, sip_delivery: SipDelivery, message: str | None = None
+    ) -> dict[str, str]:
         payload = {
             "s3_bucket": sip_delivery.s3_bucket,
             "s3_object_key": sip_delivery.s3_object_key,
-            "s3_domain": sip_delivery.s3_domain
+            "s3_domain": sip_delivery.s3_domain,
         }
 
         if message:
@@ -105,19 +107,21 @@ class EventListener:
         event = Event(attributes, data)
         self.pulsar_client.produce_event(topic, event)
 
-    def start_listening(self):
+    def receive_message(self) -> None:
+        msg = self.pulsar_client.receive()
+        try:
+            event = PulsarBinding.from_protocol(msg)  # type: ignore
+            self.handle_incoming_message(event)
+            self.pulsar_client.acknowledge(msg)
+        except Exception as e:
+            # Catch and log any errors during message processing
+            self.log.error(f"Error: {e}")
+            self.pulsar_client.negative_acknowledge(msg)
+
+    def start_listening(self) -> None:
         """
         Starts listening for incoming messages from the Pulsar topic.
         """
         while True:
-            msg = self.pulsar_client.receive()
-            try:
-                event = PulsarBinding.from_protocol(msg)  # type: ignore
-                self.handle_incoming_message(event)
-                self.pulsar_client.acknowledge(msg)
-            except Exception as e:
-                # Catch and log any errors during message processing
-                self.log.error(f"Error: {e}")
-                self.pulsar_client.negative_acknowledge(msg)
-
+            self.receive_message()
         self.pulsar_client.close()
