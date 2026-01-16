@@ -50,7 +50,7 @@ def db_client(config_parser):
 def setup_schema(db_client):
     """Creates enum, table and trigger."""
     with open(
-        Path("..", "sipin_postgres", "sip_deliveries.ddl"), "r", encoding="utf-8"
+        Path("tests", "containers", "sipin_postgres", "sip_deliveries.ddl"), "r", encoding="utf-8"
     ) as ddl_file:
         ddl = ddl_file.read()
     with db_client.pool.connection() as conn:
