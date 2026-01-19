@@ -38,10 +38,10 @@ Included in this repository is a config.yml file detailing the required configur
 3. Install the external modules:
 
     ```
-    $ pip install -r requirements.txt \
+    $ pip install -e . \
         --extra-index-url http://do-prd-mvn-01.do.viaa.be:8081/repository/pypi-all/simple \
         --trusted-host do-prd-mvn-01.do.viaa.be && \
-      pip install -r requirements-dev.txt
+      pip install -e ".[dev]"
     ```
 
 4. Make sure to load in the ENV vars.
