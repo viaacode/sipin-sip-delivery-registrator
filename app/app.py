@@ -9,7 +9,7 @@ from app.services.pulsar import PulsarClient, PulsarClientTimeoutException
 
 from . import APP_NAME
 
-RECEIVE_MESSAGE_TIMEOUT_IN_MS = 60 * 1000
+RECEIVE_MESSAGE_TIMEOUT_IN_MS = 10 * 1000
 
 
 class EventListener:
