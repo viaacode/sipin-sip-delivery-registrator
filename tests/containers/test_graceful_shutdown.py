@@ -1,9 +1,9 @@
 import subprocess
-from pathlib import Path
 from time import sleep
 from signal import SIGINT, SIGTERM
 
 from app.app import RECEIVE_MESSAGE_TIMEOUT_IN_MS
+
 
 def test_graceful_shutdown_sigint(
     setup_schema,
@@ -35,6 +35,7 @@ def test_graceful_shutdown_sigint(
     sleep(RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000)
     exited = process.poll()
     assert exited == 0
+
 
 def test_graceful_shutdown_sigterm(
     setup_schema,
