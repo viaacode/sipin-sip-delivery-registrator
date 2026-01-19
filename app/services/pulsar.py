@@ -7,12 +7,12 @@ from viaa.observability import logging
 from .. import APP_NAME
 
 
-class Timeout(Exception):
+class PulsarClientTimeoutException(Exception):
     def __repr__(self) -> str:
-        return f"{Timeout.__name__}()"
+        return f"{PulsarClientTimeoutException.__name__}()"
 
     def __str__(self) -> str:
-        return "Timeout Exception"
+        return f"{PulsarClientTimeoutException.__name__}"
 
 
 class PulsarClient:
@@ -64,7 +64,7 @@ class PulsarClient:
         try:
             return self.consumer.receive(timeout_millis=timeout_millis)
         except pulsar.Timeout:
-            raise Timeout()
+            raise PulsarClientTimeoutException()
 
     def acknowledge(self, msg):
         """Acknowledge a message on the consumer.

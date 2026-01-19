@@ -5,11 +5,11 @@ from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from app.services.db import DbClient, DuplicateKeyError, SipDelivery
-from app.services.pulsar import PulsarClient, Timeout
+from app.services.pulsar import PulsarClient, PulsarClientTimeoutException
 
 from . import APP_NAME
 
-RECEIVE_MESSAGE_TIMEOUT = 60 * 1000
+RECEIVE_MESSAGE_TIMEOUT_IN_MS = 60 * 1000
 
 
 class EventListener:
@@ -127,8 +127,8 @@ class EventListener:
         # (cf. start_listening) gets checked, we must ensure that receive_message
         # does not block indefinitely.
         try:
-            msg = self.pulsar_client.receive(timeout_millis=RECEIVE_MESSAGE_TIMEOUT)
-        except Timeout:
+            msg = self.pulsar_client.receive(timeout_millis=RECEIVE_MESSAGE_TIMEOUT_IN_MS)
+        except PulsarClientTimeoutException:
             return
 
         try:
