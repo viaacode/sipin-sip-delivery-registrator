@@ -24,17 +24,19 @@ def test_graceful_shutdown_sigint(
     sleep(1)
     process.send_signal(SIGINT)
 
-    # Again, probably a race condition between the `process.poll()` and the process
-    # actually ending in case graceful shutdown fails.
-    sleep(1)
-    exited = process.poll()
-    assert exited is None
+    # Check that the process ends in the allotted timeout period (+ 1 second
+    # to prevent race conditions between timeout and subprocess.)
+    try:
+        (out, _) = process.communicate(timeout=RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000 + 1)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        raise Exception("Process did not finish before timeout.")
 
-    # After waiting for ~RECEIVE_MESSAGE_TIMEOUT_IN_MS milliseconds without any
-    # messages coming in, the process should have finished due to timeout.
-    sleep(RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000)
-    exited = process.poll()
-    assert exited == 0
+    # Check for the log message created by the _stop function.
+    assert "received a stop signal. Attempting to shut down gracefully." in out
+
+    # Return code should be 0, it should not end due to e.g., an unhandled exception.
+    assert process.returncode == 0
 
 
 def test_graceful_shutdown_sigterm(
@@ -56,14 +58,16 @@ def test_graceful_shutdown_sigterm(
     sleep(1)
     process.send_signal(SIGTERM)
 
-    # Again, probably a race condition between the `process.poll()` and the process
-    # actually ending in case graceful shutdown fails.
-    sleep(1)
-    exited = process.poll()
-    assert exited is None
+    # Check that the process ends in the allotted timeout period (+ 1 second
+    # to prevent race conditions between timeout and subprocess.)
+    try:
+        (out, _) = process.communicate(timeout=RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000 + 1)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        raise Exception("Process did not finish before timeout.")
 
-    # After waiting for ~RECEIVE_MESSAGE_TIMEOUT_IN_MS milliseconds without any
-    # messages coming in, the process should have finished due to timeout.
-    sleep(RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000)
-    exited = process.poll()
-    assert exited == 0
+    # Check for the log message created by the _stop function.
+    assert "received a stop signal. Attempting to shut down gracefully." in out
+
+    # Return code should be 0, it should not end due to e.g., an unhandled exception.
+    assert process.returncode == 0
