@@ -1,6 +1,6 @@
 import subprocess
-from time import sleep
 from signal import SIGINT, SIGTERM
+from time import sleep
 
 import pytest
 
@@ -34,7 +34,7 @@ def test_graceful_shutdown(
         (out, _) = process.communicate(timeout=RECEIVE_MESSAGE_TIMEOUT_IN_MS / 1000 + 1)
     except subprocess.TimeoutExpired:
         process.kill()
-        raise Exception("Process did not finish before timeout.")
+        pytest.fail("Process did not finish before timeout.")
 
     # Check for the log message created by the _stop function.
     assert "received a stop signal. Attempting to shut down gracefully." in out
