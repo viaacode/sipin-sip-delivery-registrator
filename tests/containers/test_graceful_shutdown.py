@@ -8,14 +8,7 @@ from app.app import RECEIVE_MESSAGE_TIMEOUT_IN_MS
 
 
 @pytest.mark.parametrize("stop_signal", [SIGINT, SIGTERM], ids=["sigint", "sigterm"])
-def test_graceful_shutdown(
-    setup_schema,
-    db_client,
-    producer,
-    insert_sip_delivery,
-    outgoing_consumer,
-    stop_signal,
-):
+def test_graceful_shutdown(pulsar_env, postgres_env, stop_signal):
     process = subprocess.Popen(
         ["python", "-m", "main"],
         encoding="utf-8",
