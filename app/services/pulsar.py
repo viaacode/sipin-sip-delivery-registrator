@@ -1,9 +1,17 @@
 from cloudevents.events import CEMessageMode, Event, PulsarBinding
-from pulsar import Client
+from pulsar import Client, Timeout as PulsarTimeout
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from .. import APP_NAME
+
+
+class PulsarClientTimeoutException(Exception):
+    def __repr__(self) -> str:
+        return f"{PulsarClientTimeoutException.__name__}()"
+
+    def __str__(self) -> str:
+        return f"{PulsarClientTimeoutException.__name__}"
 
 
 class PulsarClient:
@@ -46,13 +54,16 @@ class PulsarClient:
             event_timestamp=event.get_event_time_as_int(),
         )
 
-    def receive(self):
+    def receive(self, timeout_millis: int | None):
         """Receive a message from the consumer.
 
         Returns:
             Message: The received message.
         """
-        return self.consumer.receive()
+        try:
+            return self.consumer.receive(timeout_millis=timeout_millis)
+        except PulsarTimeout:
+            raise PulsarClientTimeoutException()
 
     def acknowledge(self, msg):
         """Acknowledge a message on the consumer.

@@ -1,11 +1,15 @@
+import signal
+from types import FrameType
 from cloudevents.events import Event, EventAttributes, EventOutcome, PulsarBinding
 from viaa.configuration import ConfigParser
 from viaa.observability import logging
 
 from app.services.db import DbClient, DuplicateKeyError, SipDelivery
-from app.services.pulsar import PulsarClient
+from app.services.pulsar import PulsarClient, PulsarClientTimeoutException
 
 from . import APP_NAME
+
+RECEIVE_MESSAGE_TIMEOUT_IN_MS = 10 * 1000
 
 
 class EventListener:
@@ -18,6 +22,15 @@ class EventListener:
         self.db_client = DbClient(config_parser)
         self.log = logging.get_logger(__name__, config=config_parser)
         self.pulsar_client = PulsarClient(config_parser)
+        self.should_continue = True
+
+    def _stop(self, _signum: int | None, _frame: FrameType | None):
+        """Stops the start_listening loop once current event has been processed."""
+        self.log.info(
+            f"{EventListener.__name__} received a stop signal. "
+            "Attempting to shut down gracefully."
+        )
+        self.should_continue = False
 
     def _build_payload_event(
         self, sip_delivery: SipDelivery, message: str | None = None
@@ -108,7 +121,16 @@ class EventListener:
         self.pulsar_client.produce_event(topic, event)
 
     def receive_message(self) -> None:
-        msg = self.pulsar_client.receive()
+        # We use a timeout for PulsarClient.receive because otherwise this is
+        # a blocking method that is not guaranteed to return or throw.
+        # In order to ensure that the main application loop condition
+        # (cf. start_listening) gets checked, we must ensure that receive_message
+        # does not block indefinitely.
+        try:
+            msg = self.pulsar_client.receive(timeout_millis=RECEIVE_MESSAGE_TIMEOUT_IN_MS)
+        except PulsarClientTimeoutException:
+            return
+
         try:
             event = PulsarBinding.from_protocol(msg)  # type: ignore
             self.handle_incoming_message(event)
@@ -122,6 +144,14 @@ class EventListener:
         """
         Starts listening for incoming messages from the Pulsar topic.
         """
-        while True:
+
+        # Add stop handler for SIGTERM and SIGINT signals. This sets
+        # self.should_continue to false and ensures that the main loop exits
+        # gracefully.
+        signal.signal(signal.SIGTERM, self._stop)
+        signal.signal(signal.SIGINT, self._stop)
+
+        while self.should_continue:
             self.receive_message()
+
         self.pulsar_client.close()
